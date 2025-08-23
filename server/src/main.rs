@@ -2,45 +2,19 @@ use std::net::{Ipv4Addr, SocketAddr};
 
 use axum::{
     Router,
-    extract::{
-        State,
-        ws::{Message, WebSocket, WebSocketUpgrade},
-    },
+    extract::{State, ws::WebSocketUpgrade},
     response::Response,
     routing::any,
 };
-use net::models::login::{LoginRequest, LoginResponse};
 use tokio::net::TcpListener;
 
-#[derive(Clone)]
-struct AppState {}
+use crate::state::AppState;
+
+pub mod handle;
+pub mod state;
 
 async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, state))
-}
-
-async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    println!("New WebSocket connection established");
-    while let Some(Ok(msg)) = socket.recv().await {
-        if let Message::Text(text) = msg {
-            if let Ok(login_req) = serde_json::from_str::<LoginRequest>(&text) {
-                println!("Received login request: {:?}", login_req);
-
-                let login_res = LoginResponse {
-                    token: format!("token-for-{}", login_req.username),
-                };
-
-                let json_res = serde_json::to_string(&login_res).unwrap();
-
-                if socket.send(Message::text(json_res)).await.is_err() {
-                    println!("Failed to send message");
-                    break;
-                }
-            } else {
-                println!("Received something else: {}", text);
-            }
-        }
-    }
+    ws.on_upgrade(|socket| handle::handle_socket(socket, state))
 }
 
 #[tokio::main]
@@ -52,7 +26,7 @@ async fn main() {
     env_logger::builder().filter_level(level_filter).init();
     log::info!("Starting server...");
 
-    let state = AppState {};
+    let state = AppState::new().await;
     let app = Router::new().route("/ws", any(handler)).with_state(state);
 
     let socket_addr: SocketAddr = std::env::var("TCP_LISTENER")
