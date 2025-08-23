@@ -7,7 +7,10 @@ use yew::prelude::*;
 use futures::{SinkExt, StreamExt, lock::Mutex, stream::SplitSink};
 use net::login::LoginRequest;
 
+#[cfg(feature = "dev")]
 const WEBSOCKET_URL: &str = "ws://127.0.0.1:3000/ws";
+#[cfg(not(feature = "dev"))]
+const WEBSOCKET_URL: &str = concat!("ws://", env!("OTHELLO_HOST"), "/ws");
 
 #[function_component(App)]
 pub fn app() -> Html {
