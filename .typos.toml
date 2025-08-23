@@ -1,0 +1,21 @@
+[files]
+extend-exclude = [
+  "rust/Cargo.lock",
+  "rust/target/**/*",
+  "node_modules/**/*",
+  ".svelte-kit/**/*",
+  "bun.lock",
+  "*.svg",
+  "*.png",
+  "*.jpg",
+  "*.gif",
+  "*.ico",
+  "*.exe",
+]
+ignore-hidden = true
+ignore-vcs = true
+
+[default]
+check-filename = true
+check-file = true
+locale = "en-us"
