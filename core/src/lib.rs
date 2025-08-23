@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Ord, PartialOrd, Hash)]
+#[derive(Debug, enum_table::Enumable, PartialEq, Eq, Clone, Copy, Ord, PartialOrd, Hash)]
 pub enum OthelloColor {
     Black,
     White,

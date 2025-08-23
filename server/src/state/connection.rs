@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, atomic::AtomicBool};
 
 use axum::extract::ws::{Utf8Bytes, WebSocket};
 use futures_util::SinkExt;
@@ -13,6 +13,7 @@ pub struct Connection {
     pub websocket: Arc<Mutex<WebSocket>>,
 
     interrupt_notify: Arc<tokio::sync::Notify>,
+    closed: Arc<AtomicBool>,
 }
 
 pub enum ReceiveValue {
@@ -29,6 +30,7 @@ impl Connection {
             websocket: Arc::new(Mutex::new(websocket)),
 
             interrupt_notify: Default::default(),
+            closed: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -95,6 +97,10 @@ impl Connection {
     }
 
     pub async fn close(&self) {
+        if self.closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            // Already closed
+            return;
+        }
         self.interrupt_notify.notify_one();
         let mut ws = self.websocket.lock().await;
         if let Err(e) = ws.close().await {
@@ -107,5 +113,9 @@ impl Connection {
         }
 
         log::info!("WebSocket closed for user '{}'", self.username);
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.closed.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
