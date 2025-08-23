@@ -45,7 +45,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    let level_filter = std::env::var("RUST_LOG")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(log::LevelFilter::Info);
+    env_logger::builder().filter_level(level_filter).init();
     log::info!("Starting server...");
 
     let state = AppState {};
@@ -98,4 +102,3 @@ async fn shutdown_signal() {
         },
     }
 }
-
