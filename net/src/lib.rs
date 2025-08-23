@@ -15,13 +15,13 @@ macro_rules! definition_packet {
         #[res]
         $(#[$struct_attr:meta])*
         $struct_pub:ident $struct:ident $name:ident {
-            $($field_pub:ident $(#[$field_attr:meta])* $field:ident: $ty:ty),* $(,)*
+            $($tt:tt)*
         }
     ) => {
         $(#[$struct_attr])*
         #[derive(serde::Deserialize, serde::Serialize)]
         $struct_pub $struct $name {
-            $($field_pub $(#[$field_attr])* $field: $ty),*
+            $($tt)*
         }
 
         definition_packet!(@res $name);
@@ -30,13 +30,13 @@ macro_rules! definition_packet {
         #[req]
         $(#[$struct_attr:meta])*
         $struct_pub:ident $struct:ident $name:ident {
-            $($field_pub:ident $(#[$field_attr:meta])* $field:ident: $ty:ty),* $(,)*
+            $($tt:tt)*
         }
     ) => {
         $(#[$struct_attr])*
         #[derive(serde::Deserialize, serde::Serialize)]
         $struct_pub $struct $name {
-            $($field_pub $(#[$field_attr])* $field: $ty),*
+            $($tt)*
         }
 
         definition_packet!(@req $name);
@@ -45,7 +45,7 @@ macro_rules! definition_packet {
         #[$target:ident]
         $(#[$struct_attr:meta])*
         $struct_pub:ident $struct:ident $name:ident {
-            $($field_pub:ident $(#[$field_attr:meta])* $field:ident: $ty:ty),* $(,)*
+            $($tt:tt)*
         }
     )+) => {
         $(
@@ -53,7 +53,7 @@ macro_rules! definition_packet {
                 #[$target]
                 $(#[$struct_attr])*
                 $struct_pub $struct $name {
-                    $($field_pub $(#[$field_attr])* $field: $ty),*
+                    $($tt)*
                 }
             );
         )+
@@ -93,7 +93,15 @@ macro_rules! definition_packets {
                 Some(buf)
             }
 
-            pub fn decode(id: u8, buf: &[u8]) -> Option<Self> {
+            pub fn decode(buf: &[u8]) -> Option<Self> {
+                if buf.is_empty() {
+                    return None;
+                }
+                let id = buf[0];
+                Self::decode_by_id(id, &buf[1..])
+            }
+
+            pub fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
                 match id {
                     $($id => {
                         let v: $ty = serde_json::from_slice(buf).ok()?;

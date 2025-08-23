@@ -17,12 +17,13 @@ definition_packet!(
     }
 
     #[res]
-    pub struct RoomJoinRes {
-        pub opponent_username: String,
+    pub enum RoomJoinRes {
+        Success,
+        RoomNotFound,
     }
 
     #[res]
     pub struct RoomOtherJoinedRes {
-        pub opponent_username: String,
+        pub username: String,
     }
 );
