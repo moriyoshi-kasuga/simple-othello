@@ -22,6 +22,23 @@ pub struct Room {
     pub state: Arc<RwLock<RoomState>>,
 }
 
+impl Room {
+    pub fn new(key: RoomKey) -> Self {
+        Self {
+            key: Arc::new(key),
+            connections: Default::default(),
+            state: Arc::new(RwLock::new(RoomState::Waiting {
+                players: EnumTable::default(),
+            })),
+        }
+    }
+
+    pub async fn add_connection(&self, connection: Connection) {
+        let mut connections = self.connections.write().await;
+        connections.push(connection);
+    }
+}
+
 pub enum RoomState {
     Waiting {
         players: EnumTable<OthelloColor, Option<Connection>, { OthelloColor::COUNT }>,

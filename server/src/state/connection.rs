@@ -1,8 +1,8 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
-use axum::extract::ws::{Utf8Bytes, WebSocket};
+use axum::{body::Bytes, extract::ws::WebSocket};
 use futures_util::SinkExt;
-use net::models::ResPacket;
+use net::response::ResponsePacket;
 use tokio::sync::Mutex;
 use uid::Uid;
 
@@ -17,7 +17,7 @@ pub struct Connection {
 }
 
 pub enum ReceiveValue {
-    Text(Utf8Bytes),
+    Binary(Bytes),
     Interrupt,
     Other,
 }
@@ -55,7 +55,7 @@ impl Connection {
         };
 
         match msg {
-            Some(Ok(axum::extract::ws::Message::Text(t))) => Some(ReceiveValue::Text(t)),
+            Some(Ok(axum::extract::ws::Message::Binary(t))) => Some(ReceiveValue::Binary(t)),
             Some(Ok(axum::extract::ws::Message::Close(_))) => {
                 log::info!("WebSocket closed by client for user '{}'", self.username);
                 None
@@ -72,28 +72,33 @@ impl Connection {
         }
     }
 
-    pub async fn send<Res: ResPacket>(
-        &self,
-        res: Res,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    pub async fn raw_send(&self, res: Vec<u8>) -> Result<(), axum::Error> {
         self.interrupt_notify.notify_one();
         let mut ws = self.websocket.lock().await;
-        let msg = match serde_json::to_string(&res) {
-            Ok(m) => m,
-            Err(e) => {
-                log::error!(
-                    "Failed to serialize response for user '{}': {:?}",
-                    self.username,
-                    e
-                );
-                return Err(Box::new(e));
-            }
-        };
-        if let Err(e) = ws.send(axum::extract::ws::Message::text(msg)).await {
+        if let Err(e) = ws.send(axum::extract::ws::Message::binary(res)).await {
             log::error!("Failed to send message to {}: {:?}", self.username, e);
-            return Err(Box::new(e));
+            return Err(e);
         }
         Ok(())
+    }
+
+    pub async fn raw_send_or_close(&self, res: Vec<u8>) {
+        if self.raw_send(res).await.is_err() {
+            self.close().await;
+        }
+    }
+
+    pub async fn send<Res: Into<ResponsePacket>>(&self, res: Res) {
+        let res: ResponsePacket = res.into();
+        if let Some(buf) = res.encode() {
+            self.raw_send_or_close(buf).await;
+        } else {
+            log::error!(
+                "Failed to encode response packet for user '{}'",
+                self.username
+            );
+            self.close().await;
+        }
     }
 
     pub async fn close(&self) {

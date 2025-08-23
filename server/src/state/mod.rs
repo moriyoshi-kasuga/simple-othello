@@ -46,4 +46,9 @@ impl AppState {
         let mut rooms = self.rooms.write().await;
         rooms.insert((*room.key).clone(), room);
     }
+
+    pub async fn get_room(&self, key: &RoomKey) -> Option<Room> {
+        let rooms = self.rooms.read().await;
+        rooms.get(key).cloned()
+    }
 }
