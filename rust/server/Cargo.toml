@@ -6,13 +6,14 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-axum = { version = "0.8", features = ["json", "ws"] }
-tokio = { version = "1.47", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
-log = "0.4"
-env_logger = "0.11"
+core = { workspace = true }
+net = { workspace = true }
 
-[lints]
-workspace = true
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1.47", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs"] }
+env_logger = "0.11"

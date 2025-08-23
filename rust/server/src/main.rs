@@ -4,11 +4,12 @@ use axum::{
     Router,
     extract::{
         State,
-        ws::{WebSocket, WebSocketUpgrade},
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::Response,
     routing::any,
 };
+use net::models::login::{LoginRequest, LoginResponse};
 use tokio::net::TcpListener;
 
 #[derive(Clone)]
@@ -19,16 +20,26 @@ async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Respons
 }
 
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    while let Some(msg) = socket.recv().await {
-        let Ok(msg) = msg else {
-            // client disconnected
-            return;
-        };
+    println!("New WebSocket connection established");
+    while let Some(Ok(msg)) = socket.recv().await {
+        if let Message::Text(text) = msg {
+            if let Ok(login_req) = serde_json::from_str::<LoginRequest>(&text) {
+                println!("Received login request: {:?}", login_req);
 
-        // if socket.send(msg).await.is_err() {
-        //     // client disconnected
-        //     return;
-        // }
+                let login_res = LoginResponse {
+                    token: format!("token-for-{}", login_req.username),
+                };
+
+                let json_res = serde_json::to_string(&login_res).unwrap();
+
+                if socket.send(Message::text(json_res)).await.is_err() {
+                    println!("Failed to send message");
+                    break;
+                }
+            } else {
+                println!("Received something else: {}", text);
+            }
+        }
     }
 }
 
@@ -87,3 +98,4 @@ async fn shutdown_signal() {
         },
     }
 }
+

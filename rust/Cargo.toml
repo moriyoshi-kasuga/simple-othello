@@ -12,3 +12,14 @@ repository = "https://github.com/moriyoshi-kasuga/simple-othello"
 unwrap_used = "deny"
 print_stdout = "deny"
 print_stderr = "deny"
+
+[workspace.dependencies]
+uid = { path = "extras/uid" }
+core = { path = "core" }
+net = { path = "net" }
+
+tokio = { version = "1.47", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"

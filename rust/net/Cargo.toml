@@ -1,14 +1,16 @@
 [package]
-name = "uid"
+name = "net"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [dependencies]
-ulid = "=1.2.1"
+uid.workspace = true
 
 serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
 
 [lints]
 workspace = true
