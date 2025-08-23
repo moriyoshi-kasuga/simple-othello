@@ -84,7 +84,7 @@ async fn handle_inner(state: &AppState, connection: &Connection, msg: Bytes) {
             );
             let key = RoomKey::new(room_join_req.key);
             let Some::<Room>(room) = state.get_room(&key).await else {
-                connection.send(RoomJoinRes::RoomNotFound).await;
+                connection.send(&RoomJoinRes::RoomNotFound).await;
                 return;
             };
             {
@@ -93,11 +93,11 @@ async fn handle_inner(state: &AppState, connection: &Connection, msg: Bytes) {
                 };
                 let connections = room.connections.read().await;
                 for conn in &*connections {
-                    conn.send(res.clone()).await;
+                    conn.send(&res).await;
                 }
             }
             room.add_connection(connection.clone()).await;
-            connection.send(RoomJoinRes::Success).await;
+            connection.send(&RoomJoinRes::Success).await;
         }
     }
 }

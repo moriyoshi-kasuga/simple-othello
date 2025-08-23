@@ -9,5 +9,3 @@ definition_packets!(
         RoomJoin(RoomJoinReq) = 2,
     }
 );
-
-impl RequestPacket {}

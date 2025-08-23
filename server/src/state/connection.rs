@@ -2,7 +2,7 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use axum::{body::Bytes, extract::ws::WebSocket};
 use futures_util::SinkExt;
-use net::response::ResponsePacket;
+use net::ResPacket;
 use tokio::sync::Mutex;
 use uid::Uid;
 
@@ -88,8 +88,7 @@ impl Connection {
         }
     }
 
-    pub async fn send<Res: Into<ResponsePacket>>(&self, res: Res) {
-        let res: ResponsePacket = res.into();
+    pub async fn send<Res: ResPacket>(&self, res: &Res) {
         if let Some(buf) = res.encode() {
             self.raw_send_or_close(buf).await;
         } else {

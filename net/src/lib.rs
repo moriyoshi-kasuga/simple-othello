@@ -1,15 +1,54 @@
+use serde::{Serialize, de::DeserializeOwned};
+
 pub mod login;
 pub mod models;
 
 pub mod request;
 pub mod response;
 
+pub trait Packet: DeserializeOwned + Serialize + Send + Sync + 'static {
+    const PACKET_ID: u8;
+
+    fn encode(&self) -> Option<Vec<u8>> {
+        let mut buf = vec![Self::PACKET_ID];
+        let json = serde_json::to_vec(self).ok()?;
+        buf.extend(json);
+        Some(buf)
+    }
+
+    /// Decode from a buffer without packet id
+    /// If you want to decode from a buffer with packet id, use [`Packet::decode_from_buf`]
+    fn decode(buf: &[u8]) -> Option<Self> {
+        serde_json::from_slice(buf).ok()
+    }
+
+    fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
+        if id != Self::PACKET_ID {
+            return None;
+        }
+        Self::decode(buf)
+    }
+
+    /// Decode from a buffer with packet id
+    fn decode_from_buf(buf: &[u8]) -> Option<Self> {
+        if buf.is_empty() {
+            return None;
+        }
+        let id = buf[0];
+        Self::decode_by_id(id, &buf[1..])
+    }
+}
+
+pub trait ReqPacket: Packet {}
+
+pub trait ResPacket: Packet {}
+
 macro_rules! definition_packet {
     (@res $name:ident) => {
-        impl $crate::models::ResPacket for $name {}
+        impl $crate::ResPacket for $name {}
     };
     (@req $name:ident) => {
-        impl $crate::models::ReqPacket for $name {}
+        impl $crate::ReqPacket for $name {}
     };
     (@impl
         $(#[$struct_attr:meta])*
@@ -77,7 +116,7 @@ macro_rules! definition_packets {
         $pub:ident $enum:ident $name:ident {
             $(
                 $(#[$variant_attr:meta])*
-                $variant:ident($ty:ty) = $id:literal,
+                $variant:ident($ty:ident) = $id:literal,
             )*
         }
     ) => {
@@ -95,13 +134,11 @@ macro_rules! definition_packets {
             }
 
             pub fn encode(&self) -> Option<Vec<u8>> {
-                let mut buf = vec![self.id()];
-                let json = match self {
-                    $(Self::$variant(v) => serde_json::to_vec(v)),*
-                };
-                let json = json.ok()?;
-                buf.extend(json);
-                Some(buf)
+                use $crate::Packet;
+
+                match self {
+                    $(Self::$variant(v) => v.encode()),*
+                }
             }
 
             pub fn decode(buf: &[u8]) -> Option<Self> {
@@ -113,9 +150,11 @@ macro_rules! definition_packets {
             }
 
             pub fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
+                use $crate::Packet;
+
                 match id {
                     $($id => {
-                        let v: $ty = serde_json::from_slice(buf).ok()?;
+                        let v: $ty = $ty::decode(buf)?;
                         Some(Self::$variant(v))
                     }),*,
                     _ => None,
@@ -129,6 +168,10 @@ macro_rules! definition_packets {
                 fn from(value: $ty) -> Self {
                     Self::$variant(value)
                 }
+            }
+
+            impl $crate::Packet for $ty {
+                const PACKET_ID: u8 = $id;
             }
         )*
     };
