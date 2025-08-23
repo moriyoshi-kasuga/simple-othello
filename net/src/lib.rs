@@ -11,6 +11,17 @@ macro_rules! definition_packet {
     (@req $name:ident) => {
         impl $crate::models::ReqPacket for $name {}
     };
+    (@impl
+        $(#[$struct_attr:meta])*
+        $struct_pub:ident $struct:ident $name:ident {
+            $($tt:tt)*
+        }
+    ) => {
+        #[derive(Clone, serde::Deserialize, serde::Serialize)]
+        $struct_pub $struct $name {
+            $($tt)*
+        }
+    };
     (
         #[res]
         $(#[$struct_attr:meta])*
@@ -18,11 +29,11 @@ macro_rules! definition_packet {
             $($tt:tt)*
         }
     ) => {
+        definition_packet!(@impl
         $(#[$struct_attr])*
-        #[derive(serde::Deserialize, serde::Serialize)]
         $struct_pub $struct $name {
             $($tt)*
-        }
+        });
 
         definition_packet!(@res $name);
     };
@@ -33,11 +44,11 @@ macro_rules! definition_packet {
             $($tt:tt)*
         }
     ) => {
+        definition_packet!(@impl
         $(#[$struct_attr])*
-        #[derive(serde::Deserialize, serde::Serialize)]
         $struct_pub $struct $name {
             $($tt)*
-        }
+        });
 
         definition_packet!(@req $name);
     };
