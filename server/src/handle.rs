@@ -1,6 +1,6 @@
 use axum::extract::ws::{Message, Utf8Bytes, WebSocket};
 use futures_util::SinkExt;
-use net::models::login::LoginRequest;
+use net::login::LoginRequest;
 
 use crate::state::{
     AppState,

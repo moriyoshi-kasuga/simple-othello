@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use futures::{SinkExt, StreamExt, lock::Mutex, stream::SplitSink};
-use net::models::login::LoginRequest;
+use net::login::LoginRequest;
 
 const WEBSOCKET_URL: &str = "ws://127.0.0.1:3000/ws";
 
