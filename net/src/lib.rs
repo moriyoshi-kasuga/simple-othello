@@ -111,6 +111,15 @@ macro_rules! definition_packets {
                 }
             }
         }
+
+        $(
+            impl From<$ty> for $name {
+                #[inline]
+                fn from(value: $ty) -> Self {
+                    Self::$variant(value)
+                }
+            }
+        )*
     };
 }
 
