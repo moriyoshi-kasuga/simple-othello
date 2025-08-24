@@ -1,28 +1,19 @@
 use serde::{Serialize, de::DeserializeOwned};
 
-pub mod models;
+pub mod packets;
 
-pub mod request;
-pub mod response;
+pub mod state;
+
+pub trait EncodablePacket {
+    fn encode(&self) -> Option<Vec<u8>>;
+}
+
+pub trait DecodablePacket: Sized {
+    fn decode(buf: &[u8]) -> Option<Self>;
+}
 
 pub trait Packet: DeserializeOwned + Serialize + Send + Sync + 'static {
     const PACKET_ID: u8;
-
-    fn encode(&self) -> Option<Vec<u8>> {
-        let mut buf = vec![Self::PACKET_ID];
-        let json = serde_json::to_vec(self).ok()?;
-        buf.extend(json);
-        Some(buf)
-    }
-
-    /// Decode from a buffer with packet id
-    fn decode(buf: &[u8]) -> Option<Self> {
-        if buf.is_empty() {
-            return None;
-        }
-        let id = buf[0];
-        Self::decode_by_id(id, &buf[1..])
-    }
 
     fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
         if id != Self::PACKET_ID {
@@ -32,9 +23,28 @@ pub trait Packet: DeserializeOwned + Serialize + Send + Sync + 'static {
     }
 
     /// Decode from a buffer without packet id
-    /// If you want to decode from a buffer with packet id, use [`Packet::decode`]
+    /// If you want to decode from a buffer with packet id, use [`DecodablePacket::decode`]
     fn decode_raw(buf: &[u8]) -> Option<Self> {
         serde_json::from_slice(buf).ok()
+    }
+}
+
+impl<T: Packet> EncodablePacket for T {
+    fn encode(&self) -> Option<Vec<u8>> {
+        let mut buf = vec![Self::PACKET_ID];
+        let json = serde_json::to_vec(self).ok()?;
+        buf.extend(json);
+        Some(buf)
+    }
+}
+
+impl<T: Packet> DecodablePacket for T {
+    fn decode(buf: &[u8]) -> Option<Self> {
+        if buf.is_empty() {
+            return None;
+        }
+        let id = buf[0];
+        Self::decode_by_id(id, &buf[1..])
     }
 }
 
@@ -132,22 +142,6 @@ macro_rules! definition_packets {
                 }
             }
 
-            pub fn encode(&self) -> Option<Vec<u8>> {
-                use $crate::Packet;
-
-                match self {
-                    $(Self::$variant(v) => v.encode()),*
-                }
-            }
-
-            pub fn decode(buf: &[u8]) -> Option<Self> {
-                if buf.is_empty() {
-                    return None;
-                }
-                let id = buf[0];
-                Self::decode_by_id(id, &buf[1..])
-            }
-
             pub fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
                 use $crate::Packet;
 
@@ -158,6 +152,24 @@ macro_rules! definition_packets {
                     }),*,
                     _ => None,
                 }
+            }
+        }
+
+        impl $crate::EncodablePacket for $name {
+            fn encode(&self) -> Option<Vec<u8>> {
+                match self {
+                    $(Self::$variant(v) => v.encode()),*
+                }
+            }
+        }
+
+        impl $crate::DecodablePacket for $name {
+            fn decode(buf: &[u8]) -> Option<Self> {
+                if buf.is_empty() {
+                    return None;
+                }
+                let id = buf[0];
+                Self::decode_by_id(id, &buf[1..])
             }
         }
 

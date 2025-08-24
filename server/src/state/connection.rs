@@ -1,4 +1,7 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, AtomicU8},
+};
 
 use axum::{
     body::Bytes,
@@ -8,7 +11,7 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use net::{ReqPacket, ResPacket};
+use net::{DecodablePacket, EncodablePacket, state::ConnState};
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
@@ -16,13 +19,8 @@ pub struct Connection {
     tx: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     rx: Arc<Mutex<SplitStream<WebSocket>>>,
 
+    conn_state: Arc<AtomicU8>,
     closed: Arc<AtomicBool>,
-}
-
-pub enum ReceiveValue {
-    Binary(Bytes),
-    Interrupt,
-    Other,
 }
 
 impl Connection {
@@ -33,32 +31,27 @@ impl Connection {
             tx: Arc::new(Mutex::new(tx)),
             rx: Arc::new(Mutex::new(rx)),
 
+            conn_state: Arc::new(AtomicU8::new(ConnState::Login as u8)),
             closed: Arc::new(AtomicBool::new(false)),
         }
     }
 
     /// If `None` is returned, the connection should be closed.
-    pub async fn receive(&self) -> Option<ReceiveValue> {
+    pub async fn receive_raw(&self) -> Option<Bytes> {
         let msg = {
             let mut rx = self.rx.lock().await;
             rx.next().await
         };
 
         match msg {
-            Some(Ok(Message::Binary(t))) => Some(ReceiveValue::Binary(t)),
-            Some(Ok(Message::Close(_))) => None,
-            Some(Ok(_)) => Some(ReceiveValue::Other),
-            Some(Err(_)) => None,
-            None => None,
+            Some(Ok(Message::Binary(t))) => Some(t),
+            _ => None,
         }
     }
 
-    pub async fn receive_special<Req: ReqPacket>(&self) -> Option<Req> {
-        let req = self.receive().await?;
-        let ReceiveValue::Binary(buf) = req else {
-            return None;
-        };
-        Req::decode(&buf)
+    pub async fn receive<P: DecodablePacket>(&self) -> Option<P> {
+        let buf = self.receive_raw().await?;
+        P::decode(&buf)
     }
 
     pub async fn raw_send(&self, res: Vec<u8>) -> Result<(), axum::Error> {
@@ -72,12 +65,23 @@ impl Connection {
         }
     }
 
-    pub async fn send<Res: ResPacket>(&self, res: &Res) {
-        if let Some(buf) = res.encode() {
+    pub async fn send<P: EncodablePacket>(&self, packet: &P) {
+        if let Some(buf) = packet.encode() {
             self.raw_send_or_close(buf).await;
         } else {
             self.close().await;
         }
+    }
+
+    pub fn get_conn_state(&self) -> ConnState {
+        let raw_state = self.conn_state.load(std::sync::atomic::Ordering::Acquire);
+
+        unsafe { std::mem::transmute(raw_state) }
+    }
+
+    pub fn set_conn_state(&self, state: ConnState) {
+        self.conn_state
+            .store(state as u8, std::sync::atomic::Ordering::Release);
     }
 
     pub async fn close(&self) {

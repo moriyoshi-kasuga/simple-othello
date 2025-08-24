@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use net::state::ConnState;
 use uid::Uid;
 
 use crate::state::connection::Connection;
@@ -13,6 +14,7 @@ pub struct User {
 
 impl User {
     pub fn new(uid: Uid, username: String, connection: Connection) -> Self {
+        connection.set_conn_state(ConnState::Lobby);
         Self {
             uid,
             username: Arc::new(username),

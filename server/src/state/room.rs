@@ -2,6 +2,7 @@ use core::{OthelloBoard, OthelloColor};
 use std::sync::Arc;
 
 use enum_table::{EnumTable, Enumable};
+use net::packets::room::join::RoomOtherJoinedRes;
 use tokio::sync::RwLock;
 
 use crate::state::user::User;
@@ -34,6 +35,16 @@ impl Room {
     }
 
     pub async fn add_user(&self, user: User) {
+        {
+            let res = RoomOtherJoinedRes {
+                username: (*user.username).clone(),
+            };
+
+            let users = self.users.read().await;
+            for send_user in &*users {
+                send_user.connection.send(&res).await;
+            }
+        }
         let mut users = self.users.write().await;
         users.push(user);
     }
