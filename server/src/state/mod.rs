@@ -4,42 +4,43 @@ use tokio::sync::RwLock;
 use uid::Uid;
 
 use crate::state::{
-    connection::Connection,
     room::{Room, RoomKey},
+    user::User,
 };
 
 pub mod connection;
 pub mod room;
+pub mod user;
 
 #[derive(Clone)]
 pub struct AppState {
-    connections: Arc<RwLock<HashMap<Uid, Connection>>>,
+    users: Arc<RwLock<HashMap<Uid, User>>>,
     rooms: Arc<RwLock<HashMap<RoomKey, Room>>>,
 }
 
 impl AppState {
     pub async fn new() -> Self {
         Self {
-            connections: Default::default(),
+            users: Default::default(),
             rooms: Default::default(),
         }
     }
 
-    pub async fn add_connection(&self, connection: Connection) {
-        let mut connections = self.connections.write().await;
-        connections.insert(connection.uid, connection);
+    pub async fn add_user(&self, user: User) {
+        let mut users = self.users.write().await;
+        users.insert(user.uid, user);
     }
 
-    pub async fn close_connection(&self, uid: Uid) {
-        let mut connections = self.connections.write().await;
-        if let Some(conn) = connections.remove(&uid) {
-            conn.close().await;
+    pub async fn get_user(&self, uid: Uid) -> Option<User> {
+        let users = self.users.read().await;
+        users.get(&uid).cloned()
+    }
+
+    pub async fn close_user(&self, uid: Uid) {
+        let mut users = self.users.write().await;
+        if let Some(user) = users.remove(&uid) {
+            user.connection.close().await;
         }
-    }
-
-    pub async fn get_connection(&self, uid: Uid) -> Option<Connection> {
-        let connections = self.connections.read().await;
-        connections.get(&uid).cloned()
     }
 
     pub async fn add_room(&self, room: Room) {

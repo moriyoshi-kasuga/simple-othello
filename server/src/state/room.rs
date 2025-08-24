@@ -4,7 +4,7 @@ use std::sync::Arc;
 use enum_table::{EnumTable, Enumable};
 use tokio::sync::RwLock;
 
-use crate::state::connection::Connection;
+use crate::state::user::User;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RoomKey(String);
@@ -18,7 +18,7 @@ impl RoomKey {
 #[derive(Clone)]
 pub struct Room {
     pub key: Arc<RoomKey>,
-    pub connections: Arc<RwLock<Vec<Connection>>>,
+    pub users: Arc<RwLock<Vec<User>>>,
     pub state: Arc<RwLock<RoomState>>,
 }
 
@@ -26,25 +26,25 @@ impl Room {
     pub fn new(key: RoomKey) -> Self {
         Self {
             key: Arc::new(key),
-            connections: Default::default(),
+            users: Arc::new(RwLock::new(Vec::new())),
             state: Arc::new(RwLock::new(RoomState::Waiting {
                 players: EnumTable::default(),
             })),
         }
     }
 
-    pub async fn add_connection(&self, connection: Connection) {
-        let mut connections = self.connections.write().await;
-        connections.push(connection);
+    pub async fn add_user(&self, user: User) {
+        let mut users = self.users.write().await;
+        users.push(user);
     }
 }
 
 pub enum RoomState {
     Waiting {
-        players: EnumTable<OthelloColor, Option<Connection>, { OthelloColor::COUNT }>,
+        players: EnumTable<OthelloColor, Option<User>, { OthelloColor::COUNT }>,
     },
     InGame {
-        players: EnumTable<OthelloColor, Connection, { OthelloColor::COUNT }>,
+        players: EnumTable<OthelloColor, User, { OthelloColor::COUNT }>,
         game: OthelloBoard,
     },
 }

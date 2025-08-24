@@ -1,6 +1,5 @@
 use serde::{Serialize, de::DeserializeOwned};
 
-pub mod login;
 pub mod models;
 
 pub mod request;
@@ -16,26 +15,26 @@ pub trait Packet: DeserializeOwned + Serialize + Send + Sync + 'static {
         Some(buf)
     }
 
-    /// Decode from a buffer without packet id
-    /// If you want to decode from a buffer with packet id, use [`Packet::decode_from_buf`]
+    /// Decode from a buffer with packet id
     fn decode(buf: &[u8]) -> Option<Self> {
-        serde_json::from_slice(buf).ok()
+        if buf.is_empty() {
+            return None;
+        }
+        let id = buf[0];
+        Self::decode_by_id(id, &buf[1..])
     }
 
     fn decode_by_id(id: u8, buf: &[u8]) -> Option<Self> {
         if id != Self::PACKET_ID {
             return None;
         }
-        Self::decode(buf)
+        Self::decode_raw(buf)
     }
 
-    /// Decode from a buffer with packet id
-    fn decode_from_buf(buf: &[u8]) -> Option<Self> {
-        if buf.is_empty() {
-            return None;
-        }
-        let id = buf[0];
-        Self::decode_by_id(id, &buf[1..])
+    /// Decode from a buffer without packet id
+    /// If you want to decode from a buffer with packet id, use [`Packet::decode`]
+    fn decode_raw(buf: &[u8]) -> Option<Self> {
+        serde_json::from_slice(buf).ok()
     }
 }
 
@@ -154,7 +153,7 @@ macro_rules! definition_packets {
 
                 match id {
                     $($id => {
-                        let v: $ty = $ty::decode(buf)?;
+                        let v: $ty = $ty::decode_raw(buf)?;
                         Some(Self::$variant(v))
                     }),*,
                     _ => None,

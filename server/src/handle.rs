@@ -1,103 +1,93 @@
-use std::ops::Deref;
-
-use axum::{
-    body::Bytes,
-    extract::ws::{Message, WebSocket},
-};
-use futures_util::SinkExt;
+use axum::extract::ws::WebSocket;
 use net::{
-    login::LoginRequest,
-    models::room::{RoomJoinRes, RoomOtherJoinedRes},
+    models::{
+        login::LoginReq,
+        room::{RoomJoinRes, RoomOtherJoinedRes},
+    },
     request::RequestPacket,
 };
+use uid::Uid;
 
 use crate::state::{
     AppState,
     connection::{Connection, ReceiveValue},
     room::{Room, RoomKey},
+    user::User,
 };
 
-pub async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    log::info!("New WebSocket connection established");
+pub async fn handle_socket(socket: WebSocket, state: AppState) {
+    let user = {
+        let connection = Connection::new(socket);
 
-    async fn close_socket(socket: &mut WebSocket) {
-        if let Err(e) = socket.close().await {
-            log::error!("Failed to close socket: {:?}", e);
-        }
-    }
-
-    let Some(Ok(Message::Text(msg))) = socket.recv().await else {
-        close_socket(&mut socket).await;
-        return;
-    };
-
-    let login_req: LoginRequest = match serde_json::from_str(&msg) {
-        Ok(req) => req,
-        Err(e) => {
-            log::error!("Failed to parse login request: {:?}", e);
-            close_socket(&mut socket).await;
+        let Some::<LoginReq>(login_req) = connection.receive_special::<LoginReq>().await else {
+            log::warn!("Failed to receive login request");
+            connection.close().await;
             return;
-        }
+        };
+
+        User::new(Uid::new(), login_req.username, connection)
     };
-    log::info!("User '{}' logged in", login_req.username);
 
-    let connection = Connection::new(login_req.username, socket);
-    state.add_connection(connection.clone()).await;
+    state.add_user(user.clone()).await;
 
-    while let Some::<ReceiveValue>(value) = connection.receive().await {
+    log::info!("User '{}' logged in", user.username);
+
+    while let Some::<ReceiveValue>(value) = user.connection.receive().await {
         let ReceiveValue::Binary(msg) = value else {
             continue;
         };
-        handle_inner(&state, &connection, msg).await;
+        let Some(req) = RequestPacket::decode(&msg) else {
+            user.connection.close().await;
+            return;
+        };
+        handle_inner(&state, &user, req).await;
     }
 
-    state.close_connection(connection.uid).await;
+    log::info!("User '{}' disconnected", user.username);
 }
 
-async fn handle_inner(state: &AppState, connection: &Connection, msg: Bytes) {
-    let Some(req) = RequestPacket::decode(&msg) else {
-        log::warn!(
-            "Failed to decode request packet from user '{}'",
-            connection.username
-        );
-        connection.close().await;
-        return;
-    };
-
+async fn handle_inner(state: &AppState, user: &User, req: RequestPacket) {
     match req {
         RequestPacket::RoomCreate(room_create_req) => {
             log::info!(
                 "User '{}' requested to create room with name '{}'",
-                connection.username,
+                user.username,
                 room_create_req.key,
             );
             let key = RoomKey::new(room_create_req.key);
             let room = Room::new(key);
-            room.add_connection(connection.clone()).await;
+            room.add_user(user.clone()).await;
             state.add_room(room).await;
         }
         RequestPacket::RoomJoin(room_join_req) => {
             log::info!(
                 "User '{}' requested to join room with name '{}'",
-                connection.username,
+                user.username,
                 room_join_req.key,
             );
             let key = RoomKey::new(room_join_req.key);
             let Some::<Room>(room) = state.get_room(&key).await else {
-                connection.send(&RoomJoinRes::RoomNotFound).await;
+                user.connection.send(&RoomJoinRes::RoomNotFound).await;
                 return;
             };
             {
                 let res = RoomOtherJoinedRes {
-                    username: connection.username.deref().to_string(),
+                    username: (*user.username).clone(),
                 };
-                let connections = room.connections.read().await;
+                let connections = room.users.read().await;
                 for conn in &*connections {
-                    conn.send(&res).await;
+                    conn.connection.send(&res).await;
                 }
             }
-            room.add_connection(connection.clone()).await;
-            connection.send(&RoomJoinRes::Success).await;
+            room.add_user(user.clone()).await;
+            user.connection.send(&RoomJoinRes::Success).await;
+        }
+        RequestPacket::Login(_) => {
+            log::warn!(
+                "User '{}' sent login request after logged in",
+                user.username
+            );
+            user.connection.close().await;
         }
     }
 }
