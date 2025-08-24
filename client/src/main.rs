@@ -1,7 +1,3 @@
-use std::str::FromStr;
-
-use yew::prelude::*;
-
 fn main() {
     let level = std::env::var("RUST_LOG")
         .ok()
