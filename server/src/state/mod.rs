@@ -38,9 +38,11 @@ impl AppState {
 
     pub async fn close_user(&self, uid: Uid) {
         let mut users = self.users.write().await;
-        if let Some(user) = users.remove(&uid) {
-            user.connection.close().await;
-        }
+        let Some(user) = users.remove(&uid) else {
+            return;
+        };
+        user.connection.close().await;
+        user.leave_room().await;
     }
 
     pub async fn add_room(&self, room: Room) {

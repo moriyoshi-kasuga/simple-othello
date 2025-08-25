@@ -67,4 +67,6 @@ pub async fn handle_socket(socket: WebSocket, state: AppState) {
     }
 
     log::info!("User '{}' disconnected", user.username);
+
+    state.close_user(user.uid).await;
 }

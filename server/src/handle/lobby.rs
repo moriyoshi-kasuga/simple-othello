@@ -23,7 +23,6 @@ pub async fn handle_lobby(state: &AppState, user: &User, req: LobbyRequestPacket
                 user.connection.send(&LobbyRoomJoinRes::RoomNotFound).await;
                 return;
             };
-            room.add_user(user.clone()).await;
             let res = LobbyRoomJoinRes::Success {
                 users: room
                     .users
@@ -33,6 +32,8 @@ pub async fn handle_lobby(state: &AppState, user: &User, req: LobbyRequestPacket
                     .map(|u| u.to_data())
                     .collect(),
             };
+
+            room.add_user(user.clone()).await;
             user.connection.send(&res).await;
         }
     }

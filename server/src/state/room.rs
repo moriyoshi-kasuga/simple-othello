@@ -2,7 +2,7 @@ use core::{OthelloBoard, OthelloColor};
 use std::{borrow::Borrow, sync::Arc};
 
 use enum_table::{EnumTable, Enumable};
-use net::packets::room::join::RoomUserJoinBroadcast;
+use net::packets::room::{join::RoomUserJoinBroadcast, leave::RoomUserLeaveBroadcast};
 use tokio::sync::RwLock;
 
 use crate::state::user::User;
@@ -73,6 +73,20 @@ impl Room {
         user.join_room(self.clone()).await;
         let mut users = self.users.write().await;
         users.push(user);
+    }
+
+    pub async fn leave_user(&self, uid: uid::Uid) {
+        let mut users = self.users.write().await;
+        if let Some(pos) = users.iter().position(|u| u.uid == uid) {
+            let user = users.remove(pos);
+            let res = RoomUserLeaveBroadcast { uid };
+            for send_user in &*users {
+                send_user.connection.send(&res).await;
+            }
+            drop(users);
+            Box::pin(user.leave_room()).await;
+            self.unset_player_color(&user).await;
+        }
     }
 
     pub async fn set_player_color(&self, user: &User, color: OthelloColor) -> bool {
