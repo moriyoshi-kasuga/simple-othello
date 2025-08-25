@@ -1,4 +1,6 @@
-#[derive(Debug, enum_table::Enumable, PartialEq, Eq, Clone, Copy, Ord, PartialOrd, Hash)]
+#[rustfmt::skip]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Ord, PartialOrd, Hash)]
+#[derive(enum_table::Enumable, serde::Serialize, serde::Deserialize)]
 pub enum OthelloColor {
     Black,
     White,

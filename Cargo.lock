@@ -310,6 +310,7 @@ name = "core"
 version = "0.1.0"
 dependencies = [
  "enum-table",
+ "serde",
 ]
 
 [[package]]
@@ -1215,6 +1216,7 @@ name = "net"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "core",
  "serde",
  "serde_json",
  "uid",

@@ -17,8 +17,6 @@ pub async fn handle_lobby(state: &AppState, user: &User, req: LobbyRequestPacket
             state.add_room(room).await;
             let res = LobbyRoomCreateRes {};
             user.connection.send(&res).await;
-
-            user.connection.set_conn_state(net::state::ConnState::Room);
         }
         LobbyRequestPacket::RoomJoin(req) => {
             let Some::<Room>(room) = state.get_room(&req.key).await else {
@@ -36,8 +34,6 @@ pub async fn handle_lobby(state: &AppState, user: &User, req: LobbyRequestPacket
                     .collect(),
             };
             user.connection.send(&res).await;
-
-            user.connection.set_conn_state(net::state::ConnState::Room);
         }
     }
 }

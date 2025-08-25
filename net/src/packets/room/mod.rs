@@ -1,23 +1,24 @@
-use crate::{definition_packet, definition_packets, packets::room::join::RoomUserJoinRes};
+use crate::{
+    definition_packets,
+    packets::room::{
+        color::{RoomChoiceColorBroadcast, RoomChoiceColorReq, RoomChoiceColorRes},
+        join::RoomUserJoinBroadcast,
+    },
+};
 
+pub mod color;
 pub mod join;
-
-definition_packet!(
-    #[req]
-    pub struct TempRequest {
-        pub temp: String,
-    }
-);
 
 definition_packets!(
     pub enum RoomRequestPacket {
-        /// Temporary packet for testing room packet structure
-        Temp(TempRequest) = 0,
+        RoomChoiceColor(RoomChoiceColorReq) = 0,
     }
 );
 
 definition_packets!(
     pub enum RoomResponsePacket {
-        RoomUserJoin(RoomUserJoinRes) = 0,
+        RoomUserJoinBroadcast(RoomUserJoinBroadcast) = 0,
+        RoomChoiceColor(RoomChoiceColorRes) = 1,
+        RoomChoiceColorBroadcast(RoomChoiceColorBroadcast) = 2,
     }
 );
