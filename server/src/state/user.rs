@@ -21,4 +21,11 @@ impl User {
             connection,
         }
     }
+
+    pub fn to_data(&self) -> net::packets::UserData {
+        net::packets::UserData {
+            uid: self.uid,
+            username: (*self.username).clone(),
+        }
+    }
 }

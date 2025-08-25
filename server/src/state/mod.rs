@@ -45,10 +45,10 @@ impl AppState {
 
     pub async fn add_room(&self, room: Room) {
         let mut rooms = self.rooms.write().await;
-        rooms.insert((*room.key).clone(), room);
+        rooms.insert(room.key.clone(), room);
     }
 
-    pub async fn get_room(&self, key: &RoomKey) -> Option<Room> {
+    pub async fn get_room(&self, key: &str) -> Option<Room> {
         let rooms = self.rooms.read().await;
         rooms.get(key).cloned()
     }

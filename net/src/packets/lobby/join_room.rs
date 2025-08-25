@@ -1,4 +1,4 @@
-use crate::definition_packet;
+use crate::{definition_packet, packets::UserData};
 
 definition_packet!(
     #[req]
@@ -8,7 +8,7 @@ definition_packet!(
 
     #[res]
     pub enum LobbyRoomJoinRes {
-        Success,
+        Success { users: Vec<UserData> },
         RoomNotFound,
     }
 );

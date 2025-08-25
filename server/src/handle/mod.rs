@@ -14,26 +14,22 @@ pub mod room;
 pub async fn handle_socket(socket: WebSocket, state: AppState) {
     let connection = Connection::new(socket);
     macro_rules! close {
-        ($expr:expr) => {
-            if $expr {
-                connection.close().await;
-                return;
-            }
-        };
         () => {
             connection.close().await;
             return;
         };
     }
-    let user = loop {
-        close!(connection.get_conn_state() != ConnState::Login);
+    let user = 'l: {
+        if connection.get_conn_state() != ConnState::Login {
+            close!();
+        }
 
         let Some(packet) = connection.receive::<LoginRequestPacket>().await else {
             close!();
         };
         match packet {
             LoginRequestPacket::Login(req) => {
-                break User::new(Uid::new(), req.username, connection);
+                break 'l User::new(Uid::new(), req.username, connection);
             }
         };
     };
