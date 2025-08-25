@@ -9,5 +9,3 @@ definition_packet!(
     #[res]
     pub struct LobbyRoomCreateRes {}
 );
-
-

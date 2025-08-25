@@ -1,31 +1,25 @@
 use yew::prelude::*;
+use yew_router::prelude::*;
 
-mod components;
-mod pages;
+pub mod components;
+pub mod contexts;
+pub mod hooks;
+pub mod router;
+pub mod services;
 
-use crate::state::connection::Connection;
-
-pub mod state;
+use contexts::AppContextProvider;
+use router::{Route, switch};
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let connection = use_state(|| None as Option<Connection>);
-
-    use_effect_with((), {
-        let connection = connection.clone();
-        move |_| {
-            connection.set(Connection::new());
-
-            || ()
-        }
-    });
-
-    match &*connection {
-        Some(conn) => html! {
-            <ContextProvider<Connection> context={conn.clone()}>
-                <pages::main::MainPage />
-            </ContextProvider<Connection>>
-        },
-        _ => html! { <pages::error::ErrorPage /> },
+    html! {
+        <AppContextProvider>
+            <div class="container">
+                <h1>{ "Simple Othello" }</h1>
+                <BrowserRouter>
+                    <Switch<Route> render={switch} />
+                </BrowserRouter>
+            </div>
+        </AppContextProvider>
     }
 }

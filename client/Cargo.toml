@@ -15,17 +15,28 @@ workspace = true
 [dependencies]
 core.workspace = true
 net.workspace = true
+uid.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
-futures.workspace = true
+futures-util.workspace = true
+enum-table.workspace = true
 
 yew = { version = "0.21", features = ["csr"] }
-js-sys = "0.3"
+yew-router = "0.18"
 wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+  "HtmlInputElement",
+  "MessageEvent",
+  "WebSocket",
+  "CloseEvent",
+  "ErrorEvent",
+] }
+gloo-net = "0.6"
+gloo-utils = "0.2"
+gloo-console = "0.3"
 wasm-bindgen-futures = "0.4"
-web-sys = "0.3"
-gloo-net = { version = "0.6", features = ["websocket"] }
+js-sys = "0.3"
 console_log = "1.0"
 getrandom = { version = "0.3", features = ["wasm_js"] }
