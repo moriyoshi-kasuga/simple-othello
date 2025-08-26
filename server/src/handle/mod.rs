@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use axum::{body::Bytes, extract::ws::WebSocket};
 use net::{
     DecodablePacket,
@@ -11,7 +13,8 @@ use crate::state::{AppState, connection::Connection, user::User};
 pub mod lobby;
 pub mod room;
 
-pub async fn handle_socket(socket: WebSocket, state: AppState) {
+pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState) {
+    log::info!("New connection from {}", addr);
     let connection = Connection::new(socket);
     macro_rules! close {
         () => {

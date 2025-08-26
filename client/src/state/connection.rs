@@ -29,23 +29,19 @@ impl PartialEq for Connection {
     }
 }
 
-pub enum ReceiveValue {
-    Binary(Vec<u8>),
-    Other,
-}
-
 impl Connection {
     #[allow(clippy::new_without_default, clippy::unwrap_used)]
     pub fn new() -> Self {
-        let location = web_sys::window().unwrap().location();
-        let host = location.host().unwrap();
-        let protocol = if location.protocol().unwrap() == "https:" {
-            "wss:"
-        } else {
-            "ws:"
-        };
+        // let location = web_sys::window().unwrap().location();
+        // let host = location.host().unwrap();
+        // let protocol = if location.protocol().unwrap() == "https:" {
+        //     "wss:"
+        // } else {
+        //     "ws:"
+        // };
 
-        let ws_url = format!("{}//{}/ws", protocol, host);
+        // let ws_url = format!("{}//{}/ws", protocol, host);
+        let ws_url = "http://localhost:3000/ws";
         let ws = WebSocket::open(&ws_url).unwrap();
 
         Self::new_websocket(ws)

@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 
 use axum::{
     Router,
-    extract::{State, ws::WebSocketUpgrade},
+    extract::{ConnectInfo, State, ws::WebSocketUpgrade},
     response::Response,
     routing::any,
 };
@@ -13,8 +13,12 @@ use crate::state::AppState;
 pub mod handle;
 pub mod state;
 
-async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(|socket| handle::handle_socket(socket, state))
+async fn handler(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> Response {
+    ws.on_upgrade(move |socket| handle::handle_socket(addr, socket, state))
 }
 
 #[tokio::main]
@@ -43,10 +47,13 @@ async fn main() {
         .await
         .unwrap_or_else(|_| panic!("TCP listener cannot bind"));
 
-    axum::serve(listener, app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap_or_else(|_| panic!("Cannot start server"));
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .unwrap_or_else(|_| panic!("Cannot start server"));
 }
 
 async fn shutdown_signal() {

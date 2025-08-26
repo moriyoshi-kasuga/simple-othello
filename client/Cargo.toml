@@ -5,13 +5,6 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
-[features]
-default = ["dev"]
-dev = []
-
-[lints]
-workspace = true
-
 [dependencies]
 core.workspace = true
 net.workspace = true
@@ -23,9 +16,12 @@ log.workspace = true
 futures-util.workspace = true
 enum-table.workspace = true
 
-yew = { version = "0.21", features = ["csr"] }
-yew-router = "0.18"
-wasm-bindgen = "0.2"
+dioxus = { version = "0.6.0" }
+
+console_log = "1.0"
+gloo-net = "0.6"
+gloo-utils = "0.2"
+gloo-console = "0.3"
 web-sys = { version = "0.3", features = [
   "HtmlInputElement",
   "MessageEvent",
@@ -33,10 +29,26 @@ web-sys = { version = "0.3", features = [
   "CloseEvent",
   "ErrorEvent",
 ] }
-gloo-net = "0.6"
-gloo-utils = "0.2"
-gloo-console = "0.3"
-wasm-bindgen-futures = "0.4"
-js-sys = "0.3"
-console_log = "1.0"
+
 getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[lints]
+workspace = true
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

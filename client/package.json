@@ -1,0 +1,9 @@
+{
+  "name": "client",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "tailwindcss": "^4.1.12"
+  }
+}
