@@ -1,0 +1,26 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+      target: run
+    ports:
+      - "3000:3000"
+  client:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+      target: run
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/target
+  tailwind:
+    build:
+      context: ./client/
+      dockerfile: Dockerfile.tailwind
+      target: run
+    volumes:
+      - ./client:/app
+      - /app/node_modules
