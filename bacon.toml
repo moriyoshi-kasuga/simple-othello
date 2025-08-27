@@ -1,0 +1,9 @@
+default_job = "check"
+env.CARGO_TERM_COLOR = "always"
+
+[jobs.run-server]
+command = ["cargo", "run", "-p", "server", "--bin", "server"]
+need_stdout = true
+allow_warnings = true
+background = false
+on_change_strategy = "kill_then_restart"

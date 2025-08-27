@@ -11,7 +11,7 @@ tailwind() {
 }
 
 server() {
-  (cd server && cargo run -p server --bin server)
+  bacon run-server --headless --no-help-line
 }
 
 if [[ $# -eq 0 ]]; then
