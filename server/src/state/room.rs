@@ -2,7 +2,10 @@ use core::{OthelloBoard, OthelloColor};
 use std::{borrow::Borrow, sync::Arc};
 
 use enum_table::{EnumTable, Enumable};
-use net::packets::room::{join::RoomUserJoinBroadcast, leave::RoomUserLeaveBroadcast};
+use net::{
+    EncodablePacket,
+    packets::room::{join::RoomUserJoinBroadcast, leave::RoomUserLeaveBroadcast},
+};
 use tokio::sync::RwLock;
 
 use crate::state::user::User;
@@ -58,21 +61,21 @@ impl Room {
         }
     }
 
-    pub async fn add_user(&self, user: User) {
-        // Broadcast join message to existing users in parallel
-        {
-            let res = RoomUserJoinBroadcast {
-                uid: user.uid,
-                username: (*user.username).clone(),
-            };
+    pub async fn broadcast<P: EncodablePacket>(&self, packet: &P) {
+        let users = self.users.read().await;
+        let send_futures: Vec<_> = users
+            .iter()
+            .map(|user| user.connection.send(packet))
+            .collect();
+        futures::future::join_all(send_futures).await;
+    }
 
-            let users = self.users.read().await;
-            let send_futures: Vec<_> = users
-                .iter()
-                .map(|send_user| send_user.connection.send(&res))
-                .collect();
-            futures::future::join_all(send_futures).await;
-        }
+    pub async fn add_user(&self, user: User) {
+        let res = RoomUserJoinBroadcast {
+            uid: user.uid,
+            username: (*user.username).clone(),
+        };
+        self.broadcast(&res).await;
 
         user.join_room(self.key.clone()).await;
         let mut users = self.users.write().await;
@@ -91,14 +94,7 @@ impl Room {
         if let Some(user) = user {
             // Broadcast leave message to remaining users in parallel
             let res = RoomUserLeaveBroadcast { uid };
-            {
-                let users = self.users.read().await;
-                let send_futures: Vec<_> = users
-                    .iter()
-                    .map(|send_user| send_user.connection.send(&res))
-                    .collect();
-                futures::future::join_all(send_futures).await;
-            }
+            self.broadcast(&res).await;
             self.unset_player_color(&user).await;
         }
     }
