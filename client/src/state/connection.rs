@@ -32,16 +32,22 @@ impl PartialEq for Connection {
 impl Connection {
     #[allow(clippy::new_without_default, clippy::unwrap_used)]
     pub fn new() -> Self {
-        // let location = web_sys::window().unwrap().location();
-        // let host = location.host().unwrap();
-        // let protocol = if location.protocol().unwrap() == "https:" {
-        //     "wss:"
-        // } else {
-        //     "ws:"
-        // };
+        let ws_url = if cfg!(feature = "prod") {
+            let location = web_sys::window().unwrap().location();
+            let host = location.host().unwrap();
+            let protocol = if location.protocol().unwrap() == "https:" {
+                "wss:"
+            } else {
+                "ws:"
+            };
 
-        // let ws_url = format!("{}//{}/ws", protocol, host);
-        let ws_url = "http://localhost:3000/ws";
+            format!("{}//{}/ws", protocol, host)
+        } else {
+            format!(
+                "ws://127.0.0.1:{}/ws",
+                option_env!("TCP_LISTENER").unwrap_or("3000")
+            )
+        };
         let ws = WebSocket::open(&ws_url).unwrap();
 
         Self::new_websocket(ws)
