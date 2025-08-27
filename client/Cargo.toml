@@ -12,13 +12,12 @@ uid.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
-log.workspace = true
 futures-util.workspace = true
 enum-table.workspace = true
 
 dioxus = { version = "0.6.0" }
 
-console_log = "1.0"
+tracing = "0.1"
 gloo-net = "0.6"
 gloo-utils = "0.2"
 gloo-console = "0.3"

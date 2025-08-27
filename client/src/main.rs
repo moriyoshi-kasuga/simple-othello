@@ -37,6 +37,7 @@ fn App() -> Element {
                 None => rsx! {
                     Login {
                         on_login: move |data| {
+                            tracing::info!("User logged in: {:?}", data);
                             uesr_data.set(Some(data));
                         },
                     }

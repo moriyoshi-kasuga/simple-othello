@@ -70,8 +70,6 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
 
     state.add_user(user.clone()).await;
 
-    log::info!("User '{}' logged in", user.username);
-
     while let Some::<Bytes>(value) = user.connection.receive_raw().await {
         match user.connection.get_conn_state() {
             ConnState::Login => {

@@ -22,7 +22,6 @@ pub fn Login(props: Props) -> Element {
         let connection = connection.clone();
         let on_login = props.on_login;
         move |e: FormEvent| {
-            e.prevent_default();
             let username = username.read().trim().to_string();
             if username.is_empty() {
                 return;
@@ -32,7 +31,6 @@ pub fn Login(props: Props) -> Element {
                 let username_cloned = username.clone();
                 connection.send(&LoginReq { username }).await;
                 let Some(res) = connection.receive::<LoginRes>().await else {
-                    log::error!("Failed to receive login response");
                     return;
                 };
                 let user_data = UserData {
