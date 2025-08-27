@@ -1,9 +1,6 @@
 use std::{
     rc::Rc,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU8},
-    },
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use futures_util::{
@@ -12,14 +9,17 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
 };
 use gloo_net::websocket::{Message, futures::WebSocket};
-use net::{DecodablePacket, EncodablePacket, state::ConnState};
+use net::{
+    DecodablePacket, EncodablePacket,
+    state::{AtomicConnState, ConnState},
+};
 
 #[derive(Clone)]
 pub struct Connection {
     tx: Rc<Mutex<SplitSink<WebSocket, Message>>>,
     rx: Rc<Mutex<SplitStream<WebSocket>>>,
 
-    conn_state: Arc<AtomicU8>,
+    conn_state: Arc<AtomicConnState>,
     closed: Arc<AtomicBool>,
 }
 
@@ -53,7 +53,7 @@ impl Connection {
             tx: Rc::new(Mutex::new(tx)),
             rx: Rc::new(Mutex::new(rx)),
 
-            conn_state: Arc::new(AtomicU8::new(ConnState::Login as u8)),
+            conn_state: Arc::new(AtomicConnState::new(ConnState::Login)),
             closed: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -95,14 +95,11 @@ impl Connection {
     }
 
     pub fn get_conn_state(&self) -> ConnState {
-        let raw_state = self.conn_state.load(std::sync::atomic::Ordering::Acquire);
-
-        unsafe { std::mem::transmute(raw_state) }
+        self.conn_state.load()
     }
 
     pub fn set_conn_state(&self, state: ConnState) {
-        self.conn_state
-            .store(state as u8, std::sync::atomic::Ordering::Release);
+        self.conn_state.store(state);
     }
 
     pub async fn close(&self) {

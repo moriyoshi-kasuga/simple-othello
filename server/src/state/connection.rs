@@ -1,7 +1,4 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, AtomicU8},
-};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use axum::{
     body::Bytes,
@@ -11,7 +8,10 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use net::{DecodablePacket, EncodablePacket, state::ConnState};
+use net::{
+    DecodablePacket, EncodablePacket,
+    state::{AtomicConnState, ConnState},
+};
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
@@ -19,7 +19,7 @@ pub struct Connection {
     tx: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     rx: Arc<Mutex<SplitStream<WebSocket>>>,
 
-    conn_state: Arc<AtomicU8>,
+    conn_state: Arc<AtomicConnState>,
     closed: Arc<AtomicBool>,
 }
 
@@ -31,7 +31,7 @@ impl Connection {
             tx: Arc::new(Mutex::new(tx)),
             rx: Arc::new(Mutex::new(rx)),
 
-            conn_state: Arc::new(AtomicU8::new(ConnState::Login as u8)),
+            conn_state: Arc::new(AtomicConnState::new(ConnState::Login)),
             closed: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -74,14 +74,11 @@ impl Connection {
     }
 
     pub fn get_conn_state(&self) -> ConnState {
-        let raw_state = self.conn_state.load(std::sync::atomic::Ordering::Acquire);
-
-        unsafe { std::mem::transmute(raw_state) }
+        self.conn_state.load()
     }
 
     pub fn set_conn_state(&self, state: ConnState) {
-        self.conn_state
-            .store(state as u8, std::sync::atomic::Ordering::Release);
+        self.conn_state.store(state);
     }
 
     pub async fn close(&self) {

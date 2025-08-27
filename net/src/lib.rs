@@ -1,7 +1,6 @@
 use serde::{Serialize, de::DeserializeOwned};
 
 pub mod packets;
-
 pub mod state;
 
 pub trait EncodablePacket {
