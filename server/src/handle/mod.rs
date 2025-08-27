@@ -3,7 +3,11 @@ use std::net::SocketAddr;
 use axum::{body::Bytes, extract::ws::WebSocket};
 use net::{
     DecodablePacket,
-    packets::{lobby::LobbyRequestPacket, login::LoginRequestPacket, room::RoomRequestPacket},
+    packets::{
+        lobby::LobbyRequestPacket,
+        login::{LoginRequestPacket, LoginRes},
+        room::RoomRequestPacket,
+    },
     state::ConnState,
 };
 use uid::Uid;
@@ -36,15 +40,23 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
             LoginRequestPacket::Login(req) => {
                 // Validate username
                 if req.username.is_empty() {
-                    log::warn!("Connection from {} attempted to login with empty username", addr);
+                    log::warn!(
+                        "Connection from {} attempted to login with empty username",
+                        addr
+                    );
                     close!();
                 }
                 if req.username.len() > 32 {
-                    log::warn!("Connection from {} attempted to login with username longer than 32 chars", addr);
+                    log::warn!(
+                        "Connection from {} attempted to login with username longer than 32 chars",
+                        addr
+                    );
                     close!();
                 }
+                let uid = Uid::new();
+                connection.send(&LoginRes { uid }).await;
                 log::info!("User '{}' logging in from {}", req.username, addr);
-                break 'l User::new(Uid::new(), req.username, connection);
+                break 'l User::new(uid, req.username, connection);
             }
         };
     };
@@ -63,7 +75,10 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
     while let Some::<Bytes>(value) = user.connection.receive_raw().await {
         match user.connection.get_conn_state() {
             ConnState::Login => {
-                log::error!("User '{}' is in login state while already logged in", user.username);
+                log::error!(
+                    "User '{}' is in login state while already logged in",
+                    user.username
+                );
                 close!();
             } // Should not happen
             ConnState::Lobby => {
@@ -81,7 +96,10 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
                 room::handle_room(&state, &user, value).await
             }
             ConnState::Game => {
-                log::warn!("User '{}' entered game state (not yet implemented)", user.username);
+                log::warn!(
+                    "User '{}' entered game state (not yet implemented)",
+                    user.username
+                );
                 // Game state is not yet implemented
                 continue;
             }

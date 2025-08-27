@@ -11,7 +11,6 @@ definition_packet!(
     #[res]
     pub struct LoginRes {
         pub uid: Uid,
-        pub token: String,
     }
 );
 

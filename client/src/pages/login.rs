@@ -1,11 +1,14 @@
 use dioxus::prelude::*;
-use net::packets::UserData;
+use net::packets::{
+    UserData,
+    login::{LoginReq, LoginRes},
+};
 
 use crate::state::use_connection;
 
 #[derive(PartialEq, Props, Clone)]
-struct Props {
-    on_login: EventHandler<UserData>,
+pub struct Props {
+    pub on_login: EventHandler<UserData>,
 }
 
 #[component]
@@ -17,10 +20,27 @@ pub fn Login(props: Props) -> Element {
     let on_submit = {
         let username = username.clone();
         let connection = connection.clone();
-        let on_login = props.on_login.clone();
+        let on_login = props.on_login;
         move |e: FormEvent| {
-            todo!();
-            ()
+            e.prevent_default();
+            let username = username.read().trim().to_string();
+            if username.is_empty() {
+                return;
+            }
+            let connection = connection.clone();
+            spawn(async move {
+                let username_cloned = username.clone();
+                connection.send(&LoginReq { username }).await;
+                let Some(res) = connection.receive::<LoginRes>().await else {
+                    log::error!("Failed to receive login response");
+                    return;
+                };
+                let user_data = UserData {
+                    uid: res.uid,
+                    username: username_cloned,
+                };
+                on_login.call(user_data);
+            });
         }
     };
 
