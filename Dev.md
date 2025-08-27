@@ -18,9 +18,10 @@ Simple Othello is a full-stack web application that allows users to play the gam
   - **WebSocket**: Axum's built-in WebSocket support.
 
 - **Frontend**:
-  - **Framework**: [Yew](https://yew.rs/)
-  - **Toolchain**: [wasm-pack](https://rustwasm.github.io/wasm-pack/) and [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/) for compiling Rust to WebAssembly.
-  - **Build Tool**: A tool like [Trunk](https://trunkrs.dev/) is recommended for managing the frontend build process (e.g., `trunk serve`).
+  - **Framework**: [Dioxus](https://dioxuslabs.com/)
+  - **WebSocket Client**: [gloo-net](https://github.com/rustwasm/gloo) for WebSocket connections.
+  - **Build Tool**: Dioxus CLI (`dx`) for managing the frontend build process (e.g., `dx serve`).
+  - **Styling**: [Tailwind CSS](https://tailwindcss.com/) for styling.
 
 - **Core & Shared Logic**:
   - **Game Logic**: A custom bitboard implementation for efficient Othello game state management.
@@ -33,7 +34,7 @@ The project is organized as a Cargo workspace with several distinct crates, each
 
 ```txt
 /
-├── client/         # Frontend Yew application
+├── client/         # Frontend Dioxus application
 ├── core/           # Core Othello game logic (bitboard)
 ├── extras/
 │   └── uid/        # ULID wrapper for generating unique IDs
@@ -52,9 +53,11 @@ The project is organized as a Cargo workspace with several distinct crates, each
 
 - **`client`**:
   - The main entry point for the frontend WebAssembly application (`client/src/main.rs`).
-  - It uses the Yew framework to create a single-page application (SPA).
-  - The root `App` component manages the WebSocket `Connection` state.
-  - The UI is composed of various components located in `client/src/components` and pages in `client/src/pages`.
+  - It uses the Dioxus framework to create a single-page application (SPA).
+  - The root `App` component provides the `AppState` context which contains the WebSocket `Connection`.
+  - The UI is composed of various components located in `client/src/components`.
+  - State management is handled in `client/src/state`, with the `Connection` struct managing WebSocket communication using `gloo-net`.
+  - Styling is handled with Tailwind CSS, configured via `tailwind.css`.
 
 - **`core`**:
   - Contains the `OthelloBoard` struct, which implements the game's rules using a bitboard representation (`u64`).
@@ -76,11 +79,20 @@ The project is organized as a Cargo workspace with several distinct crates, each
 ### Prerequisites
 
 - [Rust toolchain](https://www.rust-lang.org/tools/install) (latest stable version recommended)
-- [Trunk](https://trunkrs.dev/#install) (for the client)
+- [Dioxus CLI](https://dioxuslabs.com/learn/0.6/getting_started) (install with `cargo install dioxus-cli`)
+- [Node.js/Bun](https://nodejs.org/) (for Tailwind CSS compilation)
 
 ### Running the Application
 
-1. **Start the Backend Server**:
+1. **Install Client Dependencies**:
+    Navigate to the client directory and install Node dependencies:
+
+    ```bash
+    cd client
+    bun install  # or npm install
+    ```
+
+2. **Start the Backend Server**:
     Open a terminal and run the following command from the project root:
 
     ```bash
@@ -89,17 +101,17 @@ The project is organized as a Cargo workspace with several distinct crates, each
 
     By default, the server will listen on `0.0.0.0:3000`.
 
-2. **Start the Frontend Client**:
-    Open a second terminal, navigate to the `client` directory, and use Trunk to serve the application:
+3. **Start the Frontend Client**:
+    Open a second terminal, navigate to the `client` directory, and use Dioxus CLI to serve the application:
 
     ```bash
     cd client
-    trunk serve
+    dx serve
     ```
 
-    This will compile the Yew application to WebAssembly, generate the necessary JavaScript bindings, and start a development server, typically at `http://127.0.0.1:8080`.
+    This will compile the Dioxus application to WebAssembly and start a development server with hot-reload support, typically at `http://127.0.0.1:8080`.
 
-3. **Access the Application**:
+4. **Access the Application**:
     Open your web browser and navigate to `http://127.0.0.1:8080`.
 
 ## 5. Communication Protocol
