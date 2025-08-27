@@ -24,14 +24,26 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
     }
     let user = 'l: {
         if connection.get_conn_state() != ConnState::Login {
+            log::warn!("Connection from {} attempted to skip login state", addr);
             close!();
         }
 
         let Some(packet) = connection.receive::<LoginRequestPacket>().await else {
+            log::warn!("Connection from {} failed to send login packet", addr);
             close!();
         };
         match packet {
             LoginRequestPacket::Login(req) => {
+                // Validate username
+                if req.username.is_empty() {
+                    log::warn!("Connection from {} attempted to login with empty username", addr);
+                    close!();
+                }
+                if req.username.len() > 32 {
+                    log::warn!("Connection from {} attempted to login with username longer than 32 chars", addr);
+                    close!();
+                }
+                log::info!("User '{}' logging in from {}", req.username, addr);
                 break 'l User::new(Uid::new(), req.username, connection);
             }
         };
@@ -51,21 +63,28 @@ pub async fn handle_socket(addr: SocketAddr, socket: WebSocket, state: AppState)
     while let Some::<Bytes>(value) = user.connection.receive_raw().await {
         match user.connection.get_conn_state() {
             ConnState::Login => {
+                log::error!("User '{}' is in login state while already logged in", user.username);
                 close!();
             } // Should not happen
             ConnState::Lobby => {
                 let Some(value) = LobbyRequestPacket::decode(&value) else {
+                    log::warn!("User '{}' sent invalid lobby packet", user.username);
                     close!();
                 };
                 lobby::handle_lobby(&state, &user, value).await
             }
             ConnState::Room => {
                 let Some(value) = RoomRequestPacket::decode(&value) else {
+                    log::warn!("User '{}' sent invalid room packet", user.username);
                     close!();
                 };
                 room::handle_room(&state, &user, value).await
             }
-            ConnState::Game => todo!(),
+            ConnState::Game => {
+                log::warn!("User '{}' entered game state (not yet implemented)", user.username);
+                // Game state is not yet implemented
+                continue;
+            }
         }
     }
 

@@ -13,6 +13,7 @@ uid.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
+futures.workspace = true
 futures-util.workspace = true
 enum-table.workspace = true
 

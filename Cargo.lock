@@ -4074,6 +4074,7 @@ dependencies = [
  "core",
  "enum-table",
  "env_logger",
+ "futures",
  "futures-util",
  "log",
  "net",

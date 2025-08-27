@@ -59,6 +59,7 @@ impl Room {
     }
 
     pub async fn add_user(&self, user: User) {
+        // Broadcast join message to existing users in parallel
         {
             let res = RoomUserJoinBroadcast {
                 uid: user.uid,
@@ -66,25 +67,38 @@ impl Room {
             };
 
             let users = self.users.read().await;
-            for send_user in &*users {
-                send_user.connection.send(&res).await;
-            }
+            let send_futures: Vec<_> = users
+                .iter()
+                .map(|send_user| send_user.connection.send(&res))
+                .collect();
+            futures::future::join_all(send_futures).await;
         }
-        user.join_room(self.clone()).await;
+
+        user.join_room(self.key.clone()).await;
         let mut users = self.users.write().await;
         users.push(user);
     }
 
     pub async fn leave_user(&self, uid: uid::Uid) {
-        let mut users = self.users.write().await;
-        if let Some(pos) = users.iter().position(|u| u.uid == uid) {
-            let user = users.remove(pos);
+        let user = {
+            let mut users = self.users.write().await;
+            users
+                .iter()
+                .position(|u| u.uid == uid)
+                .map(|pos| users.remove(pos))
+        };
+
+        if let Some(user) = user {
+            // Broadcast leave message to remaining users in parallel
             let res = RoomUserLeaveBroadcast { uid };
-            for send_user in &*users {
-                send_user.connection.send(&res).await;
+            {
+                let users = self.users.read().await;
+                let send_futures: Vec<_> = users
+                    .iter()
+                    .map(|send_user| send_user.connection.send(&res))
+                    .collect();
+                futures::future::join_all(send_futures).await;
             }
-            drop(users);
-            Box::pin(user.leave_room()).await;
             self.unset_player_color(&user).await;
         }
     }
@@ -139,6 +153,11 @@ impl Room {
             }
             RoomState::InGame { .. } => false,
         }
+    }
+
+    pub async fn is_empty(&self) -> bool {
+        let users = self.users.read().await;
+        users.is_empty()
     }
 }
 

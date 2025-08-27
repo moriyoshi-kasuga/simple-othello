@@ -4,14 +4,14 @@ use net::state::ConnState;
 use tokio::sync::RwLock;
 use uid::Uid;
 
-use crate::state::{connection::Connection, room::Room};
+use crate::state::{connection::Connection, room::RoomKey};
 
 #[derive(Clone)]
 pub struct User {
     pub uid: Uid,
     pub username: Arc<String>,
     pub connection: Connection,
-    room: Arc<RwLock<Option<Room>>>,
+    room_key: Arc<RwLock<Option<RoomKey>>>,
 }
 
 impl User {
@@ -21,28 +21,25 @@ impl User {
             uid,
             username: Arc::new(username),
             connection,
-            room: Arc::new(RwLock::new(None)),
+            room_key: Arc::new(RwLock::new(None)),
         }
     }
 
-    pub async fn join_room(&self, room: Room) {
-        let mut rk = self.room.write().await;
-        *rk = Some(room);
+    pub async fn join_room(&self, room_key: RoomKey) {
+        let mut rk = self.room_key.write().await;
+        *rk = Some(room_key);
         self.connection.set_conn_state(ConnState::Room);
     }
 
     pub async fn leave_room(&self) {
-        let mut rk = self.room.write().await;
-        if let Some(room) = rk.as_ref() {
-            room.leave_user(self.uid).await;
-        }
+        let mut rk = self.room_key.write().await;
         *rk = None;
         self.connection.set_conn_state(ConnState::Lobby);
     }
 
-    pub async fn get_room(&self) -> Option<Room> {
-        let room = self.room.read().await;
-        room.clone()
+    pub async fn get_room_key(&self) -> Option<RoomKey> {
+        let room_key = self.room_key.read().await;
+        room_key.clone()
     }
 
     pub fn to_data(&self) -> net::packets::UserData {

@@ -3,10 +3,17 @@ use net::packets::room::{
     color::{RoomChoiceColorBroadcast, RoomChoiceColorRes},
 };
 
-use crate::state::{AppState, room::Room, user::User};
+use crate::state::{AppState, user::User};
 
-pub async fn handle_room(_state: &AppState, user: &User, req: RoomRequestPacket) {
-    let Some::<Room>(room) = user.get_room().await else {
+pub async fn handle_room(state: &AppState, user: &User, req: RoomRequestPacket) {
+    let Some(room_key) = user.get_room_key().await else {
+        log::error!("User {} tried to perform room action without being in a room", user.uid);
+        user.connection.close().await;
+        return;
+    };
+    
+    let Some(room) = state.get_room(room_key.as_ref()).await else {
+        log::error!("Room {} not found for user {}", room_key.as_ref(), user.uid);
         user.connection.close().await;
         return;
     };
@@ -18,16 +25,19 @@ pub async fn handle_room(_state: &AppState, user: &User, req: RoomRequestPacket)
                     success: is_success,
                 })
                 .await;
-            for u in room.users.read().await.iter() {
-                if u.uid != user.uid {
-                    u.connection
-                        .send(&RoomChoiceColorBroadcast {
-                            uid: user.uid,
-                            color: req.color,
-                        })
-                        .await;
-                }
-            }
+            
+            // Broadcast color choice to other users in parallel
+            let broadcast = RoomChoiceColorBroadcast {
+                uid: user.uid,
+                color: req.color,
+            };
+            
+            let users = room.users.read().await;
+            let send_futures: Vec<_> = users.iter()
+                .filter(|u| u.uid != user.uid)
+                .map(|u| u.connection.send(&broadcast))
+                .collect();
+            futures::future::join_all(send_futures).await;
         }
     }
 }

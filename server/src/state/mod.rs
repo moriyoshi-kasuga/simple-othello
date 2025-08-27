@@ -42,6 +42,19 @@ impl AppState {
             return;
         };
         user.connection.close().await;
+        
+        // Handle room leave
+        if let Some(room_key) = user.get_room_key().await {
+            if let Some(room) = self.get_room(room_key.as_ref()).await {
+                room.leave_user(uid).await;
+                
+                // Check if room should be deleted
+                if room.is_empty().await {
+                    self.remove_room(&room_key).await;
+                    log::info!("Room '{}' has been deleted (no users left)", room_key.as_ref());
+                }
+            }
+        }
         user.leave_room().await;
     }
 
@@ -53,5 +66,10 @@ impl AppState {
     pub async fn get_room(&self, key: &str) -> Option<Room> {
         let rooms = self.rooms.read().await;
         rooms.get(key).cloned()
+    }
+    
+    pub async fn remove_room(&self, key: &RoomKey) {
+        let mut rooms = self.rooms.write().await;
+        rooms.remove(key);
     }
 }
