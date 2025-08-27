@@ -531,7 +531,6 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "console_log",
- "core",
  "dioxus",
  "enum-table",
  "futures-util",
@@ -540,6 +539,7 @@ dependencies = [
  "gloo-net",
  "gloo-utils",
  "log",
+ "logic",
  "net",
  "serde",
  "serde_json",
@@ -705,14 +705,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
 dependencies = [
  "unicode-segmentation",
-]
-
-[[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "enum-table",
- "serde",
 ]
 
 [[package]]
@@ -2769,6 +2761,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
+name = "logic"
+version = "0.1.0"
+dependencies = [
+ "enum-table",
+ "serde",
+]
+
+[[package]]
 name = "longest-increasing-subsequence"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2976,7 +2976,7 @@ name = "net"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "core",
+ "logic",
  "serde",
  "serde_json",
  "uid",
@@ -4071,12 +4071,12 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "axum",
- "core",
  "enum-table",
  "env_logger",
  "futures",
  "futures-util",
  "log",
+ "logic",
  "net",
  "serde",
  "serde_json",

@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "extras/uid", "net", "server", "client"]
+members = ["logic", "extras/uid", "net", "server", "client"]
 resolver = "3"
 
 [workspace.package]
@@ -15,7 +15,7 @@ print_stderr = "deny"
 
 [workspace.dependencies]
 uid = { path = "extras/uid" }
-core = { path = "core" }
+logic = { path = "logic" }
 net = { path = "net" }
 
 tokio = { version = "1.47", features = ["full"] }

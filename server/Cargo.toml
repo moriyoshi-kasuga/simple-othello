@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-core.workspace = true
+logic.workspace = true
 net.workspace = true
 uid.workspace = true
 

@@ -1,4 +1,4 @@
-use core::OthelloColor;
+use logic::OthelloColor;
 
 use uid::Uid;
 

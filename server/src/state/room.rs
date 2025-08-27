@@ -1,4 +1,4 @@
-use core::{OthelloBoard, OthelloColor};
+use logic::{OthelloBoard, OthelloColor};
 use std::{borrow::Borrow, sync::Arc};
 
 use enum_table::{EnumTable, Enumable};

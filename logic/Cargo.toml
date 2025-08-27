@@ -1,5 +1,5 @@
 [package]
-name = "core"
+name = "logic"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
