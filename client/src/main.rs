@@ -2,8 +2,8 @@ use dioxus::prelude::*;
 use net::packets::UserData;
 
 use crate::{
-    pages::login::Login,
-    state::{AppState, connection::Connection},
+    pages::{PageRouter, login::Login},
+    state::{AppState, AppStateProvider, connection::Connection},
 };
 
 mod components;
@@ -29,10 +29,7 @@ fn App() -> Element {
         div {
             match &*uesr_data.read() {
                 Some(user_data) => rsx! {
-                    div {
-                        // TODO: Add more components here
-                        div { class: "p-4 text-center text-2xl font-bold", "Welcome, {user_data.username}!" }
-                    }
+                    AppStateProvider { user_data: user_data.clone(), PageRouter {} }
                 },
                 None => rsx! {
                     Login {
