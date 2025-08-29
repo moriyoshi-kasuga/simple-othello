@@ -3,7 +3,7 @@ use net::packets::UserData;
 
 use crate::{
     pages::{PageRouter, login::Login},
-    state::{AppState, AppStateProvider, connection::Connection},
+    state::{AppStateProvider, connection::Connection},
 };
 
 mod components;
@@ -19,7 +19,7 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    use_context_provider(|| Connection::new());
+    use_context_provider(Connection::new);
     let mut uesr_data = use_signal(|| None::<UserData>);
 
     rsx! {

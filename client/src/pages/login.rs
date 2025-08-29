@@ -16,12 +16,11 @@ pub fn Login(props: Props) -> Element {
     let connection = use_connection();
 
     let mut username = use_signal(String::new);
+    let on_login = props.on_login;
 
     let on_submit = {
-        let username = username.clone();
         let connection = connection.clone();
-        let on_login = props.on_login;
-        move |e: FormEvent| {
+        move |_| {
             let username = username.read().trim().to_string();
             if username.is_empty() {
                 return;

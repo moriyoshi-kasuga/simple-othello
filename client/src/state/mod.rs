@@ -28,6 +28,7 @@ pub struct AppStateProviderProps {
 #[component]
 pub fn AppStateProvider(props: AppStateProviderProps) -> Element {
     let connection = use_connection();
+    connection.set_conn_state(net::state::ConnState::Lobby);
     let app_state = AppState {
         connection,
         user_data: props.user_data,
